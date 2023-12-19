@@ -8,7 +8,7 @@ from cffi import FFI
 # - OSX: .dylib
 # lib_path = "/Users/feb223/projects/coin/RVF/build-SYMPHONY-rvf/lib/libSym.dylib"
 lib_path = "/Users/feb223/projects/coin/SYMPHONY-5.7/build-sym/lib/libSym.dylib"
-
+lib_path = "/home/feb223/rvf/build-SYMPHONY-rvf/lib/libSym.so"
 ffi = FFI()
 
 # Load the shared library
@@ -430,7 +430,7 @@ class Symphony():
         return symlib.sym_set_row_upper(self._env, index, rhs)
     
     def build_dual_function(self):
-        termcode = symlib.sym_build_dual_function(self._env)
+        termcode = symlib.sym_build_dual_func(self._env)
         return termcode
     
     def evaluate_dual_function(self, new_rhs):
@@ -450,7 +450,7 @@ class Symphony():
 if __name__ == "__main__":
 
     # MPS file
-    model_path = "/Users/feb223/projects/coin/RVF/SYMPHONY/Datasets/milp_1.mps"
+    model_path = "/home/feb223/rvf/SYMPHONY/Datasets/milp_1.mps"
 
     # RHS vector (m = 1)
     rhs = [11.5, 4, 10]
@@ -477,8 +477,13 @@ if __name__ == "__main__":
         exit(1)
     
     sym.build_dual_function()
-    sym.evaluate_dual_function([5.5])
-    sym.evaluate_dual_function([11.5])
+    dual_bound = sym.evaluate_dual_function([5.5])
+
+    dual_bound = sym.evaluate_dual_function([11.5])
+    
+    dual_bound = sym.evaluate_dual_function([4])
+
+    dual_bound = sym.evaluate_dual_function([10])
 
     # Print solution and Obj val
     objval = sym.get_obj_val()
@@ -510,11 +515,20 @@ if __name__ == "__main__":
             print("Something went wrong!")
             exit(1)
 
+        sym.build_dual_function()
+
         # Print solution and Obj val
         objval = sym.get_obj_val()
         print("Objective Value: %.5f" % (objval))
 
         opt_sol = sym.get_col_solution()
+        dual_bound = sym.evaluate_dual_function([5.5])
+
+        dual_bound = sym.evaluate_dual_function([11.5])
+    
+        dual_bound = sym.evaluate_dual_function([4])
+
+        dual_bound = sym.evaluate_dual_function([10])
         
         if opt_sol:
             print("Optimal Solution:")
