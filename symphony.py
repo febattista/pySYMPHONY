@@ -292,6 +292,11 @@ ffi.cdef(
     int sym_set_param(sym_environment *env, char *line);
     
     int sym_free_env(sym_environment *env);
+
+    int sym_build_dual_func(sym_environment *env);
+
+    int sym_evaluate_dual_function(sym_environment *env, 
+            double *new_rhs, int size_new_rhs, double *dual_bound);
  
     """)
 
@@ -423,6 +428,18 @@ class Symphony():
 
     def set_row_upper(self, index: int, rhs: float):
         return symlib.sym_set_row_upper(self._env, index, rhs)
+    
+    def build_dual_function(self):
+        termcode = symlib.sym_build_dual_function(self._env)
+        return termcode
+    
+    def evaluate_dual_function(self, new_rhs):
+        dual_bound = ffi.new("double *")
+        termcode = symlib.sym_evaluate_dual_function(self._env, new_rhs, len(new_rhs), dual_bound)
+        if termcode == FUNCTION_TERMINATED_ABNORMALLY:
+            return -INF
+        else:
+            return dual_bound[0]
 
 # sym_is_abandoned
 # sym_is_proven_optimal
@@ -459,6 +476,10 @@ if __name__ == "__main__":
         print("Something went wrong!")
         exit(1)
     
+    sym.build_dual_function()
+    sym.evaluate_dual_function([5.5])
+    sym.evaluate_dual_function([11.5])
+
     # Print solution and Obj val
     objval = sym.get_obj_val()
     print("Objective Value: %.5f" % (objval))
