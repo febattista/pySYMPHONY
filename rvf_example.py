@@ -450,10 +450,10 @@ class Symphony():
 if __name__ == "__main__":
 
     # MPS file
-    model_path = "/home/feb223/rvf/SYMPHONY/Datasets/milp_1.mps"
+    model_path = "./RVF_example.MPS"
 
     # RHS vector (m = 1)
-    rhs = [11.5, 4, 10]
+    zeta_lst = np.linspace(-16, 5, 2000)
 
     # Create SYMPHONY environment
     sym = Symphony()
@@ -477,67 +477,22 @@ if __name__ == "__main__":
         exit(1)
     
     sym.build_dual_function()
-    dual_bound = sym.evaluate_dual_function([5.5])
 
-    dual_bound = sym.evaluate_dual_function([11.5])
-    
-    dual_bound = sym.evaluate_dual_function([4])
+    rhs = [0, 4, 5, 5]
 
-    dual_bound = sym.evaluate_dual_function([10])
+    y_lst = []
 
-    # Print solution and Obj val
-    objval = sym.get_obj_val()
-    print("Objective Value: %.5f" % (objval))
-
-    opt_sol = sym.get_col_solution()
-    
-    if opt_sol:
-        print("Optimal Solution:")
-        for i, x in enumerate(opt_sol):
-            if np.abs(x) > 1e-7:
-                print("X%d: %.5f" % (i, x))
-                pass
-    else:
-        print("No solution found")
-
-    for r in rhs:
-        print("========================")
-        print("     Solve RHS %.1f       " % (r))
-        print("========================")
-        
-        # Set new Rhs (sense '=')
-        sym.set_row_lower(0, r)
-        sym.set_row_upper(0, r)
-
-        # Solve for new rhs using warm start
-        print("Warm solving...")
+    for zeta in zeta_lst:
+        sym.set_row_upper(0, zeta)
         if (sym.warm_solve() == FUNCTION_TERMINATED_ABNORMALLY):
             print("Something went wrong!")
             exit(1)
-
         sym.build_dual_function()
-
-        # Print solution and Obj val
         objval = sym.get_obj_val()
-        print("Objective Value: %.5f" % (objval))
+        y_lst.append(objval)
 
-        opt_sol = sym.get_col_solution()
-        dual_bound = sym.evaluate_dual_function([5.5])
-
-        dual_bound = sym.evaluate_dual_function([11.5])
-    
-        dual_bound = sym.evaluate_dual_function([4])
-
-        dual_bound = sym.evaluate_dual_function([10])
-        
-        if opt_sol:
-            print("Optimal Solution:")
-            for i, x in enumerate(opt_sol):
-                if np.abs(x) > 1e-7:
-                    pass
-                    print("X%d: %.5f" % (i, x))
-        else:
-            print("No solution found")
+    for y in y_lst:
+        print(str(y) + ",")
 
     # Close the environment 
     del sym
