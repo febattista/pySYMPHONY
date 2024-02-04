@@ -8,7 +8,7 @@ from cffi import FFI
 # - OSX: .dylib
 # lib_path = "/Users/feb223/projects/coin/RVF/build-SYMPHONY-rvf/lib/libSym.dylib"
 # lib_path = "/Users/feb223/projects/coin/SYMPHONY-5.7/build-sym/lib/libSym.dylib"
-lib_path = "/home/feb223/rvf/build-SYMPHONY-rvf/lib/libSym.so"
+lib_path = "/home/federico/Scrivania/coin/rvf/build-sym-cffi/lib/libSym.so"
 ffi = FFI()
 
 # Load the shared library
@@ -325,7 +325,7 @@ class Symphony():
     def read_mps(self, model: str):
         termcode = FUNCTION_TERMINATED_ABNORMALLY
         # Check if the path exists and ends with ".mps"
-        if os.path.exists(model) and model.endswith(".mps"):
+        if os.path.exists(model) and model.lower().endswith(".mps"):
             arg_file = ffi.new("char []", str.encode(model))
             termcode = symlib.sym_read_mps(self._env, arg_file)
             self.model_file = model
@@ -363,6 +363,9 @@ class Symphony():
         if not self.warm_start_is_on:
             symlib.sym_set_int_param(self._env, 
                                      str.encode("keep_warm_start"), True)
+            symlib.sym_set_int_param(self._env, 
+                                     str.encode("keep_dual_function_description"), 
+                                     True)
             symlib.sym_set_int_param(self._env, 
                                      str.encode("should_use_rel_br"), False)
             symlib.sym_set_int_param(self._env, 
@@ -441,103 +444,3 @@ class Symphony():
         else:
             return dual_bound[0]
 
-# sym_is_abandoned
-# sym_is_proven_optimal
-# sym_is_proven_primal_infeasible
-# sym_is_iteration_limit_reached
-# sym_is_time_limit_reached
-
-if __name__ == "__main__":
-
-    # MPS file
-    model_path = "/home/feb223/rvf/SYMPHONY/Datasets/milp_1.mps"
-
-    # RHS vector (m = 1)
-    rhs = [11.5, 4, 10]
-
-    # Create SYMPHONY environment
-    sym = Symphony()
-
-    # Set additional parameters
-    sym.set_param("verbosity", -2)
-
-    # Load the problem
-    sym.read_mps(model_path)
-
-    # Enable Warm Start
-    sym.enable_warm_start()
-
-    # First solve
-    print("========================")
-    print("     Initial Solve      ")
-    print("========================")
-    print("Solving...")
-    if (sym.solve() == FUNCTION_TERMINATED_ABNORMALLY):
-        print("Something went wrong!")
-        exit(1)
-    
-    sym.build_dual_function()
-    dual_bound = sym.evaluate_dual_function([5.5])
-
-    dual_bound = sym.evaluate_dual_function([11.5])
-    
-    dual_bound = sym.evaluate_dual_function([4])
-
-    dual_bound = sym.evaluate_dual_function([10])
-
-    # Print solution and Obj val
-    objval = sym.get_obj_val()
-    print("Objective Value: %.5f" % (objval))
-
-    opt_sol = sym.get_col_solution()
-    
-    if opt_sol:
-        print("Optimal Solution:")
-        for i, x in enumerate(opt_sol):
-            if np.abs(x) > 1e-7:
-                print("X%d: %.5f" % (i, x))
-                pass
-    else:
-        print("No solution found")
-
-    for r in rhs:
-        print("========================")
-        print("     Solve RHS %.1f       " % (r))
-        print("========================")
-        
-        # Set new Rhs (sense '=')
-        sym.set_row_lower(0, r)
-        sym.set_row_upper(0, r)
-
-        # Solve for new rhs using warm start
-        print("Warm solving...")
-        if (sym.warm_solve() == FUNCTION_TERMINATED_ABNORMALLY):
-            print("Something went wrong!")
-            exit(1)
-
-        sym.build_dual_function()
-
-        # Print solution and Obj val
-        objval = sym.get_obj_val()
-        print("Objective Value: %.5f" % (objval))
-
-        opt_sol = sym.get_col_solution()
-        dual_bound = sym.evaluate_dual_function([5.5])
-
-        dual_bound = sym.evaluate_dual_function([11.5])
-    
-        dual_bound = sym.evaluate_dual_function([4])
-
-        dual_bound = sym.evaluate_dual_function([10])
-        
-        if opt_sol:
-            print("Optimal Solution:")
-            for i, x in enumerate(opt_sol):
-                if np.abs(x) > 1e-7:
-                    pass
-                    print("X%d: %.5f" % (i, x))
-        else:
-            print("No solution found")
-
-    # Close the environment 
-    del sym
