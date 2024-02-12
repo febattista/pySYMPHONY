@@ -293,6 +293,8 @@ ffi.cdef(
     
     int sym_free_env(sym_environment *env);
 
+    void print_dual_function(sym_environment *env);
+
     int sym_build_dual_func(sym_environment *env);
 
     int sym_evaluate_dual_function(sym_environment *env, 
@@ -431,6 +433,9 @@ class Symphony():
 
     def set_row_upper(self, index: int, rhs: float):
         return symlib.sym_set_row_upper(self._env, index, rhs)
+    
+    def print_dual_function(self):
+        symlib.print_dual_function(self._env)
     
     def build_dual_function(self):
         termcode = symlib.sym_build_dual_func(self._env)
