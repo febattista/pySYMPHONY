@@ -8,7 +8,7 @@ from cffi import FFI
 # - OSX: .dylib
 # lib_path = "/Users/feb223/projects/coin/RVF/build-SYMPHONY-rvf/lib/libSym.dylib"
 # lib_path = "/Users/feb223/projects/coin/SYMPHONY-5.7/build-sym/lib/libSym.dylib"
-lib_path = "/home/federico/Scrivania/coin/rvf/build-sym-cffi/lib/libSym.so"
+lib_path = "/home/feb223/rvf/build-SYMPHONY-rvf/lib/libSym.so"
 ffi = FFI()
 
 # Load the shared library
@@ -337,6 +337,11 @@ class Symphony():
             symlib.sym_get_num_rows(self._env, var)
             self.m = var[0]
         return termcode
+    
+    def write_lp(self, filename):
+        arg_file = ffi.new("char []", str.encode(filename))
+        termcode = symlib.sym_write_lp(self._env, arg_file)
+        return termcode
 
     def set_param(self, key: str, value):
         termcode = FUNCTION_TERMINATED_ABNORMALLY
@@ -411,6 +416,13 @@ class Symphony():
         else:
             print("Warm start is not enabled.")
             return FUNCTION_TERMINATED_ABNORMALLY
+
+    def is_proven_optimal(self):
+        return symlib.sym_is_proven_optimal(self._env)
+
+    def is_proven_primal_infeasible(self):
+        return symlib.sym_is_proven_primal_infeasible(self._env)
+
         
     def get_obj_val(self):
         objval = ffi.new("double *")
