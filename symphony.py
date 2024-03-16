@@ -2,27 +2,8 @@ import os
 import numpy as np
 from cffi import FFI
 
-# Absolute path to the libSym, extention change based on the OS:
-# - Windows: .dll
-# - Linux: .so
-# - OSX: .dylib
-# lib_path = "/Users/feb223/projects/coin/RVF/build-SYMPHONY-rvf/lib/libSym.dylib"
-# lib_path = "/Users/feb223/projects/coin/SYMPHONY-5.7/build-sym/lib/libSym.dylib"
-lib_path = "/home/feb223/rvf/build-SYMPHONY-rvf/lib/libSym.so"
-ffi = FFI()
-
-# Load the shared library
-try:
-    symlib = ffi.dlopen(lib_path)
-except Exception as e:
-    print(f"An exception occurred: {e}")
-    # Abort
-    exit(1)
-
 #-------------------- C functions and struct declarations ---------------------#
-
-ffi.cdef(
-""" 
+cdefs = """ 
     typedef struct MIPDESC MIPdesc;
     typedef struct WARM_START_DESC warm_start_desc;
     typedef struct SYM_ENVIRONMENT sym_environment;
@@ -300,7 +281,7 @@ ffi.cdef(
     int sym_evaluate_dual_function(sym_environment *env, 
             double *new_rhs, int size_new_rhs, double *dual_bound);
  
-    """)
+    """
 
 #-------------------------------- CONSTANTS -----------------------------------#
 
@@ -313,53 +294,81 @@ INF = float("inf")
 
 class Symphony():
 
+    is_dl_loaded = False
+    ffi = None
+    symlib = None
+
+    # Absolute path to the libSym, extention change based on the OS:
+    # - Windows: .dll
+    # - Linux: .so
+    # - OSX: .dylib
+    @staticmethod
+    def dlopen(lib_path):
+        if not Symphony.is_dl_loaded:
+            Symphony.ffi = FFI()
+            # Load the shared library
+            try:
+                Symphony.symlib = Symphony.ffi.dlopen(lib_path)
+                Symphony.ffi.cdef(cdefs)
+                Symphony.is_dl_loaded = True
+            except Exception as e:
+                print(f"An exception occurred: {e}")
+                print(f"Shared library cannot be loaded.")
+                exit(1)
+        else:
+            print("Shared Library already loaded.")
+
     def __init__(self):
-        self._env = symlib.sym_open_environment()
+        if not Symphony.is_dl_loaded:
+            raise Exception("Shared Library is not loaded yet.")
+        
+        self._env = Symphony.symlib.sym_open_environment()
         self.model_file = ""                        # Model file
         self.n = -1                                 # Num cols
         self.m = -1                                 # Num rows
         self.warm_start_is_on = False
 
     def __del__(self):
-        if self._env:
-            return symlib.sym_close_environment(self._env)
+        if Symphony.is_dl_loaded:
+            if self._env:
+                return Symphony.symlib.sym_close_environment(self._env)
 
     def read_mps(self, model: str):
         termcode = FUNCTION_TERMINATED_ABNORMALLY
         # Check if the path exists and ends with ".mps"
         if os.path.exists(model) and model.lower().endswith(".mps"):
-            arg_file = ffi.new("char []", str.encode(model))
-            termcode = symlib.sym_read_mps(self._env, arg_file)
+            arg_file = Symphony.ffi.new("char []", str.encode(model))
+            termcode = Symphony.symlib.sym_read_mps(self._env, arg_file)
             self.model_file = model
-            var = ffi.new("int *")
-            symlib.sym_get_num_cols(self._env, var)
+            var = Symphony.ffi.new("int *")
+            Symphony.symlib.sym_get_num_cols(self._env, var)
             self.n = var[0]
-            symlib.sym_get_num_rows(self._env, var)
+            Symphony.symlib.sym_get_num_rows(self._env, var)
             self.m = var[0]
         return termcode
     
     def write_lp(self, filename):
-        arg_file = ffi.new("char []", str.encode(filename))
-        termcode = symlib.sym_write_lp(self._env, arg_file)
+        arg_file = Symphony.ffi.new("char []", str.encode(filename))
+        termcode = Symphony.symlib.sym_write_lp(self._env, arg_file)
         return termcode
 
     def set_param(self, key: str, value):
         termcode = FUNCTION_TERMINATED_ABNORMALLY
         # Int param
         if type(value) == int:
-            termcode = symlib.sym_set_int_param(self._env, 
+            termcode = Symphony.symlib.sym_set_int_param(self._env, 
                                                 str.encode(key), value)
         # Bool param
         elif type(value) == bool:
-            termcode = symlib.sym_set_int_param(self._env, 
+            termcode = Symphony.symlib.sym_set_int_param(self._env, 
                                             str.encode(key), 1 if value else 0)
         # Float param
         elif type(value) == float:
-            termcode = symlib.sym_set_dbl_param(self._env, 
+            termcode = Symphony.symlib.sym_set_dbl_param(self._env, 
                                                 str.encode(key), value)
         # String param
         elif type(value) == str:
-            termcode = symlib.sym_set_str_param(self._env, str.encode(key), 
+            termcode = Symphony.symlib.sym_set_str_param(self._env, str.encode(key), 
                                         str.encode(value))
         else:
             print("Not a valid parameter value.")
@@ -368,94 +377,94 @@ class Symphony():
     def enable_warm_start(self):
         # Set parameters needed for warm start to work
         if not self.warm_start_is_on:
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("keep_warm_start"), True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("keep_dual_function_description"), 
                                      True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("should_use_rel_br"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("use_hot_starts"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("should_warmstart_node"), True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("sensitivity_analysis"), True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("sensitivity_bounds"), True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("sensitivity_rhs"), True)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("set_obj_upper_lim"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("do_primal_heuristic"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("prep_level"), -1)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("tighten_root_bounds"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("max_sp_size"), 100)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("do_reduced_cost_fixing"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("generate_cgl_cuts"), False)
-            symlib.sym_set_int_param(self._env, 
+            Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("max_active_nodes"), 1)
             self.warm_start_is_on = True
         else:
             print("Warm start is already enabled.")
 
     def solve(self):
-        termcode = symlib.sym_solve(self._env)
+        termcode = Symphony.symlib.sym_solve(self._env)
         return termcode
     
     def warm_solve(self):
         if self.warm_start_is_on:
-            termcode = symlib.sym_warm_solve(self._env)
+            termcode = Symphony.symlib.sym_warm_solve(self._env)
             return termcode
         else:
             print("Warm start is not enabled.")
             return FUNCTION_TERMINATED_ABNORMALLY
 
     def is_proven_optimal(self):
-        return symlib.sym_is_proven_optimal(self._env)
+        return Symphony.symlib.sym_is_proven_optimal(self._env)
 
     def is_proven_primal_infeasible(self):
-        return symlib.sym_is_proven_primal_infeasible(self._env)
+        return Symphony.symlib.sym_is_proven_primal_infeasible(self._env)
 
         
     def get_obj_val(self):
-        objval = ffi.new("double *")
-        termcode = symlib.sym_get_obj_val(self._env, objval)
+        objval = Symphony.ffi.new("double *")
+        termcode = Symphony.symlib.sym_get_obj_val(self._env, objval)
         if termcode == FUNCTION_TERMINATED_ABNORMALLY:
             return -INF
         else:
             return objval[0]
     
     def get_col_solution(self):
-        colsol = ffi.new("double[%d]" % self.n)
-        termcode = symlib.sym_get_col_solution(self._env, colsol)
+        colsol = Symphony.ffi.new("double[%d]" % self.n)
+        termcode = Symphony.symlib.sym_get_col_solution(self._env, colsol)
         if termcode == FUNCTION_TERMINATED_ABNORMALLY:
             return []
         else:
             return list(colsol)
 
     def set_row_lower(self, index: int, rhs: float):
-        return symlib.sym_set_row_lower(self._env, index, rhs)
+        return Symphony.symlib.sym_set_row_lower(self._env, index, rhs)
 
     def set_row_upper(self, index: int, rhs: float):
-        return symlib.sym_set_row_upper(self._env, index, rhs)
+        return Symphony.symlib.sym_set_row_upper(self._env, index, rhs)
     
     def print_dual_function(self):
-        symlib.print_dual_function(self._env)
+        Symphony.symlib.print_dual_function(self._env)
     
     def build_dual_function(self):
-        termcode = symlib.sym_build_dual_func(self._env)
+        termcode = Symphony.symlib.sym_build_dual_func(self._env)
         return termcode
     
     def evaluate_dual_function(self, new_rhs):
-        dual_bound = ffi.new("double *")
-        termcode = symlib.sym_evaluate_dual_function(self._env, new_rhs, len(new_rhs), dual_bound)
+        dual_bound = Symphony.ffi.new("double *")
+        termcode = Symphony.symlib.sym_evaluate_dual_function(self._env, new_rhs, len(new_rhs), dual_bound)
         if termcode == FUNCTION_TERMINATED_ABNORMALLY:
             return -INF
         else:

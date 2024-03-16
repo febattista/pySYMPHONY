@@ -3,8 +3,12 @@ import os, sys
 sys.path.append("..")
 
 import numpy as np
-from cffi import FFI
 from symphony import *
+
+# Symphony's Shared library absolute path
+lib_path = "/home/feb223/rvf/build-SYM-debug/lib/libSym.so"
+
+Symphony.dlopen(lib_path)
 
 # MPS file
 model_path = "./RVF_example.MPS"
