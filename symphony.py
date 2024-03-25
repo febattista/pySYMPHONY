@@ -278,6 +278,8 @@ cdefs = """
 
     int sym_build_dual_func(sym_environment *env);
 
+    double sym_get_lp_time_dual_func(sym_environment *env);
+
     int sym_evaluate_dual_function(sym_environment *env, 
             double *new_rhs, int size_new_rhs, double *dual_bound);
  
@@ -298,10 +300,11 @@ class Symphony():
     ffi = None
     symlib = None
 
-    # Absolute path to the libSym, extention change based on the OS:
-    # - Windows: .dll
-    # - Linux: .so
-    # - OSX: .dylib
+    # Loads the shared library. Needs to be called before creating Symphony objects
+    # lib_path : Absolute path to the libSym, extention change based on the OS:
+    #            - Windows: .dll
+    #            - Linux: .so
+    #            - OSX: .dylib
     @staticmethod
     def dlopen(lib_path):
         if not Symphony.is_dl_loaded:
@@ -410,6 +413,12 @@ class Symphony():
                                      str.encode("generate_cgl_cuts"), False)
             Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("max_active_nodes"), 1)
+            # This parameter is problematic if set different than zero
+            # We disable it while investigating
+            Symphony.symlib.sym_set_int_param(self._env, 
+                                     str.encode("max_presolve_iter"), 0)
+            # Symphony.symlib.sym_set_int_param(self._env, 
+                                    #  str.encode("limit_strong_branching_time"), 0)
             self.warm_start_is_on = True
         else:
             print("Warm start is already enabled.")
@@ -469,4 +478,7 @@ class Symphony():
             return -INF
         else:
             return dual_bound[0]
+        
+    def get_lp_cpu_time(self):
+        return Symphony.symlib.sym_get_lp_time_dual_func(self._env)
 
