@@ -415,8 +415,8 @@ class Symphony():
                                      str.encode("max_active_nodes"), 1)
             # This parameter is problematic if set different than zero
             # We disable it while investigating
-            Symphony.symlib.sym_set_int_param(self._env, 
-                                     str.encode("max_presolve_iter"), 0)
+            # Symphony.symlib.sym_set_int_param(self._env, 
+            #                          str.encode("max_presolve_iter"), 0)
             # Symphony.symlib.sym_set_int_param(self._env, 
                                     #  str.encode("limit_strong_branching_time"), 0)
             self.warm_start_is_on = True
