@@ -280,6 +280,8 @@ cdefs = """
 
     double sym_get_lp_time_dual_func(sym_environment *env);
 
+    int sym_get_tree_size(sym_environment *env);
+
     int sym_evaluate_dual_function(sym_environment *env, 
             double *new_rhs, int size_new_rhs, double *dual_bound);
  
@@ -457,6 +459,12 @@ class Symphony():
             return []
         else:
             return list(colsol)
+        
+    def get_lp_cpu_time(self):
+        return Symphony.symlib.sym_get_lp_time_dual_func(self._env)
+    
+    def get_tree_size(self):
+        return Symphony.symlib.sym_get_tree_size(self._env)
 
     def set_row_lower(self, index: int, rhs: float):
         return Symphony.symlib.sym_set_row_lower(self._env, index, rhs)
@@ -479,6 +487,4 @@ class Symphony():
         else:
             return dual_bound[0]
         
-    def get_lp_cpu_time(self):
-        return Symphony.symlib.sym_get_lp_time_dual_func(self._env)
-
+    

@@ -313,6 +313,7 @@ def solve(model_path, tempListZeta):
         totalTimeBuild += time.time() - st_build
 
         sym.print_dual_function()
+        print("Current tree size: ", sym.get_tree_size())
         if sym.is_proven_optimal():
             print("OPTIMAL")
             obj = sym.get_obj_val()
