@@ -1,5 +1,7 @@
 import os
 import numpy as np
+from scipy.stats import qmc
+
 from cffi import FFI
 
 #-------------------- C functions and struct declarations ---------------------#
@@ -284,6 +286,9 @@ cdefs = """
 
     int sym_evaluate_dual_function(sym_environment *env, 
             double *new_rhs, int size_new_rhs, double *dual_bound);
+
+    int sym_get_dual_bound_from_tree(sym_environment *env, 
+            double *new_rhs, int size_new_rhs, double *dual_bound);
  
     """
 
@@ -293,6 +298,7 @@ FUNCTION_TERMINATED_NORMALLY    = 0
 FUNCTION_TERMINATED_ABNORMALLY  = -1
 
 INF = float("inf")
+zerotol = 1e-6
 
 #------------------------------------------------------------------------------#
 
@@ -413,8 +419,8 @@ class Symphony():
                                      str.encode("do_reduced_cost_fixing"), False)
             Symphony.symlib.sym_set_int_param(self._env, 
                                      str.encode("generate_cgl_cuts"), False)
-            Symphony.symlib.sym_set_int_param(self._env, 
-                                     str.encode("max_active_nodes"), 1)
+            # Symphony.symlib.sym_set_int_param(self._env, 
+            #                          str.encode("max_active_nodes"), 1)
             # This parameter is problematic if set different than zero
             # We disable it while investigating
             # Symphony.symlib.sym_set_int_param(self._env, 
@@ -487,4 +493,158 @@ class Symphony():
         else:
             return dual_bound[0]
         
+    def get_dual_bound_from_tree(self, new_rhs):
+        dual_bound = Symphony.ffi.new("double *")
+        termcode = Symphony.symlib.sym_get_dual_bound_from_tree(self._env, len(new_rhs), new_rhs, dual_bound)
+        if termcode == FUNCTION_TERMINATED_ABNORMALLY:
+            return -INF
+        else:
+            return dual_bound[0]
+        
+
+class SymphonyForest():
+    def __init__(self):
+        # Parametric MILP model file (.mps)
+        self.model = ""     
+        # List of Symphony objects (trees)
+        self.trees = []  
+        # Parameters for forest management   
+        self.params = {}
+        self.params['use_dual_bound_from_tree'] = False
+        self.params['max_tree_size'] = INF
+        self.params['max_opt_gap'] = 0.0001
+        self.params['debug'] = True
+
+    def clear_forest(self):
+        self.trees = []
+
+    def add_tree(self):
+        # Create a new Symphony object and add it to the forest
+        print("Adding new tree to the forest. Total len: ", len(self.trees)+1)
+        sym = Symphony()
+        sym.set_param("verbosity", -2)
+        sym.read_mps(self.model)
+        sym.enable_warm_start()
+        self.trees.append(sym)
+        return self.trees[-1]
+
+
+    def should_use_tree(self, tree: Symphony, opt_gap=None):        
+        # Decide whether to use the given tree based on its size and optimality gap
+        tree_size = tree.get_tree_size()
+        if self.params['debug']:
+            print("tree size : ", tree_size)
+            print("max tree size : ", self.params['max_tree_size'])
+            print("opt gap : ", opt_gap)
+            print("max opt gap : ", self.params['max_opt_gap'])
+        if opt_gap is not None and np.abs(opt_gap) < zerotol:
+            return True
+        elif opt_gap is not None and opt_gap > self.params['max_opt_gap']:
+            return False
+        elif tree_size > self.params['max_tree_size']:
+            return False
+        else:
+            return True
+        
+
+    def pick_tree(self, rhs, primal_bound=INF):
+        best_dual_bound = -INF
+        best_opt_gap = None
+        best_tree = None
+        this_dual_bound = 0
+        best_idx = 0
+        # Pick the tree with the best dual bound for the given rhs
+        for i, tree in enumerate(self.trees):
+
+            if self.params['use_dual_bound_from_tree']:
+                # This changes the rhs and warm starts the tree
+                this_dual_bound = tree.get_dual_bound_from_tree(rhs)
+            else:
+                # Uses the dual function to get the dual bound
+                this_dual_bound = tree.evaluate_dual_function(rhs)
+
+            # Use optimality gap if primal bound is given ...
+            if primal_bound < INF:
+                this_opt_gap =  100 * np.abs(primal_bound - this_dual_bound) / (1e-10 + np.abs(primal_bound))
+                if best_opt_gap is None or this_opt_gap - best_opt_gap < -zerotol:
+                    best_opt_gap = this_opt_gap
+                    best_tree = tree
+            # ... else use dual bound
+            else:
+                if this_dual_bound - best_dual_bound > zerotol:
+                    best_dual_bound = this_dual_bound
+                    best_tree = tree
+                    best_idx = i
+        
+        if best_tree is None or not self.should_use_tree(best_tree, opt_gap=best_opt_gap):
+            best_tree = self.add_tree()
+        
+        if self.params['debug']:
+            print("===============================================")
+            print("Best tree: ", best_idx)
+            print("Best tree size: ", best_tree.get_tree_size())
+            print("Best dual bound: ", best_dual_bound)
+            print("Best optimality gap: ", best_opt_gap)
+            print("===============================================")
+
+
+        return best_tree
+    
+    def evaluate_forest_dual_function(self, rhs):
+        best_dual_bound = -INF
+        this_dual_bound = 0
+        # Evaluate the dual function across all trees and return the best bound
+        for i, tree in enumerate(self.trees):
+            this_dual_bound = tree.evaluate_dual_function(rhs)
+
+            if self.params['debug']:
+                print("Tree ", i, " dual bound: ", this_dual_bound)
+            
+            if this_dual_bound - best_dual_bound > zerotol:
+                best_dual_bound = this_dual_bound
+        
+        return best_dual_bound
+        
+
+
+def generate_samples_hypercube(num_samples, L, U, num_objs, method="sobol", seed=1234):
+    """
+    Generate samples within a d-dimensional hypercube [L, U]^d.
+
+    Parameters
+    ----------
+    num_samples : int
+        Number of points to sample.
+    L : array-like
+        Lower bounds (length = num_objs).
+    U : array-like
+        Upper bounds (length = num_objs).
+    num_objs : int
+        Dimension of the hypercube.
+    method : {"sobol", "halton", "lhs"}, optional
+        Sampling method to use.
+    seed : int, optional
+        Random seed for reproducibility.
+
+    Returns
+    -------
+    samples : ndarray of shape (num_samples, num_objs)
+        Sampled points within [L, U]^num_objs.
+    """
+    L, U = np.asarray(L), np.asarray(U)
+
+    if method == "sobol":
+        sampler = qmc.Sobol(num_objs, scramble=True, seed=seed)
+        X = sampler.random(num_samples)
+    elif method == "halton":
+        sampler = qmc.Halton(num_objs, scramble=True, seed=seed)
+        X = sampler.random(num_samples)
+    elif method == "lhs":
+        sampler = qmc.LatinHypercube(num_objs, seed=seed)
+        X = sampler.random(num_samples)
+    else:
+        raise ValueError("method must be one of 'sobol', 'halton', or 'lhs'.")
+
+    return qmc.scale(X, L, U)
+
     

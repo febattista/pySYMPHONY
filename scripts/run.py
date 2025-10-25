@@ -40,10 +40,22 @@ def runExperiments(exe, instanceDirs, outputDir, versions, symParams):
                         # print(instance.name)
                         if instance.name.lower().endswith('.mps'):
                             outname = instance.name[:-4]+'.out'
-                            command = ['python', '/home/feb223/rvf/pySYMPHONY/main.py', "-F", instance.path] + paramcmd.split()
+                            if any(x in instance.name.lower() for x in ('spp', 'mis')):
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_IP_biobj.py"
+                            elif 'kp' in instance.name.lower():
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_IP_multiobj.py"
+                            elif 'ip_obj_2' in instance.name.lower():
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_IP_biobj_random.py"
+                            elif 'ip_obj_' in instance.name.lower():
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_IP_multiobj_random.py"
+                            elif 'obj_2' in instance.name.lower():
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_MILP_biobj.py"
+                            else:
+                                exe = "/Users/feb223/projects/coin/RVF/pySYMPHONY/BBRVF_MILP_multiobj.py"
+                            command = ['python', exe, "-i", instance.path] + paramcmd.split()
                             outfile = open(os.path.join(outsubpath, outname), 'w')
                             try:
-                                print('Running {} ...'.format(instance.name))
+                                print('Running {} ...'.format(instance.name + " " + exe))
                                 # Run the child command with subprocess
                                 result = subprocess.run(command, stdout=outfile, 
                                                         stderr=subprocess.PIPE, check=True)
@@ -67,5 +79,5 @@ def runExperiments(exe, instanceDirs, outputDir, versions, symParams):
 
 if __name__ == "__main__":
 
-    exe = 'python /home/feb223/rvf/pySYMPHONY/main.py'
+    exe = ''
     runExperiments(exe, instanceDirs, outputDir, versions, symParams)
