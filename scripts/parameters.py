@@ -1,7 +1,7 @@
 # Script to set up parameters for SYMPHONY
 
 # SYMPHONY version
-versions = ['rvf']
+versions = ['forest']
 
 # Output parent path
 outputDir = '/Users/feb223/projects/coin/RVF/tests'
@@ -10,15 +10,30 @@ outputDir = '/Users/feb223/projects/coin/RVF/tests'
 # Directory name and path containing test instances in .mps format
 # Keys are used to name subdirs in output dir
 instanceDirs = {
-     'KP' : '/Users/feb223/projects/coin/RVF/Data_rvf/KP',
-     'SPP' : '/Users/feb223/projects/coin/RVF/Data_rvf/SPP',
-     'MILP' : '/Users/feb223/projects/coin/RVF/Data_rvf/MILP',
-     'IP' : '/Users/feb223/projects/coin/RVF/Data_rvf/IP'
+     # 'KP' : '/Users/feb223/projects/coin/RVF/Data_rvf/KP',
+     # 'SPP' : '/Users/feb223/projects/coin/RVF/Data_rvf/SPP',
+     # 'MILP' : '/Users/feb223/projects/coin/RVF/Data_rvf/MILP',
+     # 'IP' : '/Users/feb223/projects/coin/RVF/Data_rvf/IP'
+     'Sample' : '/Users/feb223/projects/coin/RVF/pySYMPHONY/Data_rvf/Sample'
 }
 
 # Set up senarios
+commonParams = {
+     'timelimit' : '1800'
+}
 # SYMPHONY additional parameters to be set
-symParams = {}
+symParams = {
+    
+}
 
-symParams['RVFconstruct'] = {
+symParams['forest_warmstart'] = {
+    'policy' : '0'
+}
+
+symParams['forest_coldstart'] = {
+    'policy' : '1'
+}
+
+symParams['forest_hybrid'] = {
+    'policy' : '2'
 }

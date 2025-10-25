@@ -4,7 +4,7 @@ import shutil, subprocess
 sys.path.append("..")
 
 import numpy as np
-from parameters import versions, outputDir, instanceDirs, symParams
+from parameters import versions, outputDir, instanceDirs, symParams, commonParams
 
 def runExperiments(exe, instanceDirs, outputDir, versions, symParams):
     # set up output directories
@@ -80,4 +80,8 @@ def runExperiments(exe, instanceDirs, outputDir, versions, symParams):
 if __name__ == "__main__":
 
     exe = ''
+    for key in symParams:
+        symParams[key].update(commonParams)
+    print(symParams)
+
     runExperiments(exe, instanceDirs, outputDir, versions, symParams)
