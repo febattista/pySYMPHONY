@@ -494,12 +494,14 @@ class Symphony():
             return dual_bound[0]
         
     def get_dual_bound_from_tree(self, new_rhs):
-        dual_bound = Symphony.ffi.new("double *")
-        termcode = Symphony.symlib.sym_get_dual_bound_from_tree(self._env, len(new_rhs), new_rhs, dual_bound)
-        if termcode == FUNCTION_TERMINATED_ABNORMALLY:
-            return -INF
-        else:
-            return dual_bound[0]
+        # dual_bound = Symphony.ffi.new("double *")
+        # termcode = Symphony.symlib.sym_get_dual_bound_from_tree(self._env, len(new_rhs), new_rhs, dual_bound)
+        # if termcode == FUNCTION_TERMINATED_ABNORMALLY:
+        #     return -INF
+        # else:
+        #     return dual_bound[0]
+        raise NotImplementedError("get_dual_bound_from_tree is not implemented yet.")
+
         
 
 class SymphonyForest():
