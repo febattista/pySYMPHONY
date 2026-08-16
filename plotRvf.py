@@ -10,7 +10,11 @@ plt.rcParams['text.usetex'] = True
 
 from symphony import *
 
-lib_path = r'/Users/feb223/projects/coin/RVF/build-SYMPHONY-rvf/lib/libSym.dylib'
+# TODO
+# - get rid of hard-coded paths
+# - automatically create df*.log during run or else incorporate directly into SYMPHONY
+
+lib_path = r'/home/ted/Projects/build-SYMPHONY-rvf-debug/lib/libSym.so'
 # Load the library by calling this static method
 Symphony.dlopen(lib_path)
 
@@ -71,6 +75,7 @@ def compute_df(rhss, zeta_lst, logfile=''):
     sym = Symphony()
     # Set additional parameters
     sym.set_param("verbosity", -2)
+    sym.set_param("do_primal_heuristic", 0)
     # Load the problem
     sym.read_mps(MPS_file)
     sym.enable_warm_start() 
@@ -117,7 +122,7 @@ def compute_regions(logfile):
     return regions
 
 
-MPS_file = "/Users/feb223/projects/coin/RVF/pySYMPHONY/example/RVF_example.MPS"
+MPS_file = "/home/ted/Projects/pySYMPHONY/example/RVF_example.MPS"
 threshold = 2
 line_width = 3
 filename = "rvf_example.pdf"
@@ -133,15 +138,18 @@ rvf_lst = compute_rvf(zeta_lst_large)
 ef_lst = compute_ef(rvf_lst)
 
 df_lst_1 = compute_df([-40/9], zeta_lst_large)
-reg_1 = compute_regions('/Users/feb223/projects/coin/RVF/pySYMPHONY/dflogs/df1.log')
+reg_1 = compute_regions('/home/ted/Projects/pySYMPHONY/dflogs-new2/df1.log')
 df_lst_2 = compute_df([-40/9, -55.5], zeta_lst_large)
-reg_2 = compute_regions('/Users/feb223/projects/coin/RVF/pySYMPHONY/dflogs/df2.log')
-df_lst_3 = compute_df([-40/9, -55.5, -73/6, -30], zeta_lst_large)
-reg_3 = compute_regions('/Users/feb223/projects/coin/RVF/pySYMPHONY/dflogs/df3.log')
-df_lst_4 = compute_df([-40/9, -55.5, -73/6, -11, -8, -30], zeta_lst_large)
-reg_4 = compute_regions('/Users/feb223/projects/coin/RVF/pySYMPHONY/dflogs/df4.log')
+reg_2 = compute_regions('/home/ted/Projects/pySYMPHONY/dflogs-new2/df2.log')
+#df_lst_3 = compute_df([-40/9, -55.5, -73/6, -30], zeta_lst_large) # Federico's original example
+df_lst_3 = compute_df([-40/9, -55.5, -11], zeta_lst_large)
+reg_3 = compute_regions('/home/ted/Projects/pySYMPHONY/dflogs-new2/df3.log')
+#df_lst_4 = compute_df([-40/9, -55.5, -73/6, -11, -8, -30], zeta_lst_large) # Federico's original example
+df_lst_4 = compute_df([-40/9, -55.5, -11, -5, -30], zeta_lst_large)
+reg_4 = compute_regions('/home/ted/Projects/pySYMPHONY/dflogs-new2/df4.log')
 
-
+#This is for the workaround for creation of df*.log files 
+#sys.exit(0)
 
 # ================================================================
 #       LARGE PLOTS
@@ -150,7 +158,7 @@ reg_4 = compute_regions('/Users/feb223/projects/coin/RVF/pySYMPHONY/dflogs/df4.l
 # Base graph RVF + EF
 filename = "rvf_example_base_large.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 ofs_rvf = 37
 mrkr_rvf = 4.5
@@ -167,7 +175,7 @@ plt.ylim(-1, 85)
 plt.xlim(-55, 1)
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend()
@@ -178,14 +186,14 @@ plt.clf()
 # RVF + DF1
 filename = "rvf_example_large_df_1.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_large, rvf_lst, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_large, df_lst_1, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_large, df_lst_1, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 x_val = -40/9
 plt.annotate(
-    r"$\zeta_1 = -5$",            # text
+    r"$\zeta_1 = -4$",            # text
     xy=(x_val, 2),             # point to point at
     xytext=(-5, 20),               # text location
     arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
@@ -207,7 +215,7 @@ plt.ylim(-5, 85)
 plt.xlim(-55, 1)
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -218,10 +226,10 @@ plt.clf()
 # RVF + DF2
 filename = "rvf_example_large_df_2.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_large, rvf_lst, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_large, df_lst_2, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_large, df_lst_2, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 x_val = -50
 plt.annotate(
@@ -247,7 +255,7 @@ plt.ylim(-5, 85)
 plt.xlim(-55, 1)
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -258,10 +266,10 @@ plt.clf()
 # RVF + DF3
 filename = "rvf_example_large_df_3.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_large, rvf_lst, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_large, df_lst_3, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_large, df_lst_3, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 # x_val = -73/6
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
@@ -271,22 +279,22 @@ plot_disc(zeta_lst_large, df_lst_3, r"$\underline{\phi}_L$", color='red', style=
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
 # plt.text(x_val - 1, 30, r"$\zeta_4 = -30$", fontsize=12, ha='right', va='center')
 
-x_val = -73/6
-plt.annotate(
-    r"$\zeta_3 = -\frac{73}{6}$",       # text
-    xy=(x_val, 6),             # point to point at
-    xytext=(-20, 2),       # text location
-    arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
-    fontsize=12,
-    ha="right",
-    va="center"
-)
+#x_val = -73/6
+#plt.annotate(
+#    r"$\zeta_3 = -\frac{73}{6}$",       # text
+#    xy=(x_val, 6),             # point to point at
+#    xytext=(-20, 2),       # text location
+#    arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
+#    fontsize=12,
+#    ha="right",
+#    va="center"
+#)
 
-x_val = -30
+x_val = -11
 plt.annotate(
-    r"$\zeta_4 = -30$",       # text
-    xy=(x_val, 39),             # point to point at
-    xytext=(-40, 10),       # text location
+    r"$\zeta_5 = -11$",         # text
+    xy=(x_val, 7),              # point to point at
+    xytext=(-13, 40),           # text location
     arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
     fontsize=12,
     ha="right",
@@ -300,13 +308,14 @@ for i, r in enumerate(reg_3):
     else: 
         pos = (x_val + (-1)) / 2
     plt.axvline(x=x_val, color="blue", alpha=0.3)
-    plt.text(pos, -2.5, "Node %d" % (r[0] + 1), fontsize=12, ha='center', va='center')
+    # The "+ 3" here is because the tree is complete and has 7 nodes. We only want to consider the leaves
+    plt.text(pos, -2.5, "Node %d" % (r[0] + 3), fontsize=5, ha='center', va='center')
 
 plt.ylim(-5, 85)
 plt.xlim(-55, 1)
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -317,10 +326,10 @@ plt.clf()
 # RVF + DF4
 filename = "rvf_example_large_df_4.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_large, rvf_lst, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_large, rvf_lst, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_large, df_lst_4, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_large, df_lst_4, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 # x_val = -11
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
@@ -330,22 +339,33 @@ plot_disc(zeta_lst_large, df_lst_4, r"$\underline{\phi}_L$", color='red', style=
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
 # plt.text(x_val + 1, 30, r"$\zeta_6 = -8$", fontsize=12, ha='left', va='center')
 
-x_val = -11
+#x_val = -8
+#plt.annotate(
+#    r"$\zeta_6 = -8$",          # text
+#    xy=(x_val, 7),              # point to point at
+#    xytext=(0.5, 35),           # text location
+#    arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
+#    fontsize=12,
+#    ha="right",
+#    va="center"
+#)
+
+x_val = -5
 plt.annotate(
-    r"$\zeta_5 = -11$",         # text
-    xy=(x_val, 7),              # point to point at
-    xytext=(-13, 40),           # text location
+    r"$\zeta_1 = -5$",            # text
+    xy=(x_val, 2),             # point to point at
+    xytext=(-5, 20),               # text location
     arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
     fontsize=12,
     ha="right",
     va="center"
 )
 
-x_val = -8
+x_val = -30
 plt.annotate(
-    r"$\zeta_6 = -8$",          # text
-    xy=(x_val, 7),              # point to point at
-    xytext=(0.5, 35),           # text location
+    r"$\zeta_4 = -30$",       # text
+    xy=(x_val, 39),             # point to point at
+    xytext=(-40, 10),       # text location
     arrowprops=dict(arrowstyle="->", color="black", alpha=0.7),
     fontsize=12,
     ha="right",
@@ -368,7 +388,7 @@ plt.ylim(-5, 85)
 plt.xlim(-55, 1)
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -403,7 +423,7 @@ df_lst_4_small = df_lst_4[zeta_lst_large >= zeta_lb]
 # Base graph RVF + EF
 filename = "rvf_example_base_small.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_small, rvf_lst_small, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
 plot_disc(zeta_lst_small, ef_lst_small, r"${\rm EF}$", color='dodgerblue', style='--', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
@@ -414,7 +434,7 @@ plt.xlim(-16, 1)
 
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -425,10 +445,10 @@ plt.clf()
 # RVF + DF1
 filename = "rvf_example_small_df_1.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_small, rvf_lst_small, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_small, df_lst_1_small, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_small, df_lst_1_small, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 x_val = -40/9
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
@@ -451,7 +471,7 @@ plt.xlim(-16, 1)
 
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -462,10 +482,10 @@ plt.clf()
 # RVF + DF2
 filename = "rvf_example_small_df_2.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_small, rvf_lst_small, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_small, df_lst_2_small, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_small, df_lst_2_small, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 plt.text(-7, -2.5, "Node 0", fontsize=12, ha='center', va='center')
 
@@ -474,7 +494,7 @@ plt.xlim(-16, 1)
 
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -485,10 +505,10 @@ plt.clf()
 # RVF + DF3
 filename = "rvf_example_small_df_3.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_small, rvf_lst_small, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_small, df_lst_3_small, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_small, df_lst_3_small, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 for i, r in enumerate(reg_3):
     x_val = zeta_lst_large[r[1]]
@@ -497,14 +517,15 @@ for i, r in enumerate(reg_3):
     else: 
         pos = (x_val + (-1)) / 2
     plt.axvline(x=x_val, color="blue", alpha=0.3)
-    plt.text(pos, -2.5, "Node %d" % (r[0] + 1), fontsize=12, ha='center', va='center')
+    # The "+ 3" here is because the tree is complete and has 7 nodes. We only want to consider the leaves
+    plt.text(pos, -2.5, "Node %d" % (r[0] + 3), fontsize=12, ha='center', va='center')
 
 plt.ylim(-4, 30)
 plt.xlim(-16, 1)
 
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend(loc="upper right")
@@ -515,10 +536,10 @@ plt.clf()
 # RVF + DF4
 filename = "rvf_example_small_df_4.pdf"
 # Fill the epigraph
-plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="feasible images")
+plt.fill_between(zeta_lst_small, rvf_lst_small, y2=100, color='#FFDAB9', alpha=1, label="epigraph")
 
 plot_disc(zeta_lst_small, rvf_lst_small, r"${\rm RVF}$", color='black', style='-', line_width=lw_rvf, threshold=threshold, offset_end=ofs_rvf, markersize=mrkr_rvf)
-plot_disc(zeta_lst_small, df_lst_4_small, r"$\underline{\phi}_L$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
+plot_disc(zeta_lst_small, df_lst_4_small, r"$\underline{\phi}$", color='red', style='-', line_width=lw_ef, threshold=threshold, offset_end=ofs_ef, markersize=mrkr_ef)
 
 # x_val = -11
 # plt.axvline(x=x_val, linestyle="dashed", color="black", alpha=0.3)
@@ -547,7 +568,7 @@ plt.xlim(-16, 1)
 
 # Optional: Add labels and title
 plt.xlabel(r"$\zeta$")
-plt.ylabel(r"$\phi_L(\zeta)$")
+plt.ylabel(r"$\phi(\zeta)$")
 
 # Add legend
 plt.legend()
